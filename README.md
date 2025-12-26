@@ -1,27 +1,34 @@
-# Nebula Challenge
+# NebulaChchallenge
+
 CLI tool for analyzing TLS/SSL security of domains using the SSL Labs API. Built with Go for the Truora Nebula Challenge.
 
 ## Description
-This CLI allows you to request, monitor and retrieve SSL/TLS analysis reports for any public domain.
-It validates and sanitizes hostnames, interacts with the SSL Labs public API, and displays the results in a readable format or as JSON.
+
+This CLI allows you to request, monitor and retrieve SSL/TLS analysis reports for any public domain. It validates and sanitizes hostnames, interacts with the SSL Labs public API, and displays the results in a readable format or as JSON.
 
 ## Usage
-Run the tool from the project root:
 
-  go run . --host=<hostname> [options]
+Run the tool from the project root:
+```bash
+go run . --host=<hostname> [options]
+```
 
 ### Options
-  --host string      Hostname to analyze (required)
-  --publish          Publish results on SSL Labs public boards
-  --json             Output results as JSON
-  --help             Show help message
+
+- `--host string` - Hostname to analyze (required)
+- `--publish` - Publish results on SSL Labs public boards
+- `--json` - Output results as JSON
+- `--help` - Show help message
 
 ### Examples
-  go run . --host=google.com
-  go run . --host=facebook.com --json
-  go run . --host=github.com --publish
+```bash
+go run . --host=google.com
+go run . --host=facebook.com --json
+go run . --host=github.com --publish
+```
 
 ## Features
+
 - Hostname validation and sanitization
 - Integration with SSL Labs API v2
 - Polling until the analysis is completed
@@ -30,12 +37,11 @@ Run the tool from the project root:
 - Graceful shutdown on Ctrl+C
 
 ## Project Architecture
-
+```
 NebulaChallenge/
 │
 ├── main.go                 # Application entry point and CLI
 ├── go.mod                  # Go module definition
-├── go.sum                  # Dependency checksums
 ├── README.md               # This file
 │
 ├── client/                 # HTTP client for SSL Labs API
@@ -55,10 +61,13 @@ NebulaChallenge/
 │
 └── utils/                  # Helper utilities
     └── validator.go       # Input validation
+```
 
 ## Requirements
+
 - Go 1.21+
 - Internet connection
 
 ## Notes
+
 This project was developed as part of the Truora Nebula technical challenge.
