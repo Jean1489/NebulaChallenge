@@ -1,0 +1,7 @@
+.idea/
+*.exe
+*.log
+bin/
+tmp/
+.env
+.DS_Store
