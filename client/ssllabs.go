@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"NebulaChallenge/models"
@@ -106,6 +107,85 @@ func (c *Client) CheckAnalysis(host string) (*models.Host, error) {
 	}
 
 	return &hostResult, nil
+}
+
+// GetEndpointData obtiene información detallada de un endpoint específico
+func (c *Client) GetEndpointData(host string, ipAddress string, fromCache bool) (*models.Endpoint, error) {
+	params := url.Values{}
+	params.Add("host", host)
+	params.Add("s", ipAddress) // ← 's' es el parámetro para la IP del endpoint
+
+	if fromCache {
+		params.Add("fromCache", "on")
+	}
+
+	endpoint := fmt.Sprintf("%s/getEndpointData?%s", c.baseURL, params.Encode())
+
+	var endpointResult models.Endpoint
+	if err := c.doRequest(endpoint, &endpointResult); err != nil {
+		return nil, fmt.Errorf("error getting endpoint data: %w", err)
+	}
+
+	return &endpointResult, nil
+}
+
+// CheckAnalysisFromCache obtiene resultados del cache si están disponibles
+func (c *Client) CheckAnalysisFromCache(host string, maxAge int) (*models.Host, error) {
+	params := url.Values{}
+	params.Add("host", host)
+	params.Add("fromCache", "on")
+	params.Add("all", "done")
+
+	if maxAge > 0 {
+		params.Add("maxAge", strconv.Itoa(maxAge))
+	}
+
+	endpoint := fmt.Sprintf("%s/analyze?%s", c.baseURL, params.Encode())
+
+	var hostResult models.Host
+	if err := c.doRequest(endpoint, &hostResult); err != nil {
+		return nil, fmt.Errorf("error checking cache: %w", err)
+	}
+
+	return &hostResult, nil
+}
+
+// IsAnalysisComplete verifica si el análisis está completo
+func IsAnalysisComplete(status string) bool {
+	return status == "READY" || status == "ERROR"
+}
+
+// IsAnalysisSuccessful verifica si el análisis fue exitoso
+func IsAnalysisSuccessful(status string) bool {
+	return status == "READY"
+}
+
+// GetStatusMessage devuelve un mensaje legible del estado
+func GetStatusMessage(status string) string {
+	switch status {
+	case "DNS":
+		return "Resolving DNS..."
+	case "IN_PROGRESS":
+		return "Analysis in progress..."
+	case "READY":
+		return "Analysis complete"
+	case "ERROR":
+		return "Analysis failed"
+	default:
+		return status
+	}
+}
+
+// IsServiceAvailable verifica si el servicio está disponible
+func (c *Client) IsServiceAvailable() (bool, error) {
+	_, err := c.GetInfo()
+	if err != nil {
+		if strings.Contains(err.Error(), "503") || strings.Contains(err.Error(), "529") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // doRequest realiza una petición HTTP GET y parsea la respuesta JSON

@@ -1,7 +1,9 @@
 package analyzer
 
 import (
+	_ "context"
 	"fmt"
+	"strings"
 	"time"
 
 	"NebulaChallenge/client"
@@ -24,7 +26,8 @@ func NewAnalyzer() *Analyzer {
 // Run ejecuta el análisis completo de un host
 func (a *Analyzer) Run(host string, publish bool) (*models.Host, error) {
 	// 1. Validar el host
-	if err := utils.ValidateHost(host); err != nil {
+	sanitizedHost := utils.SanitizeHost(host)
+	if err := utils.ValidateHost(sanitizedHost); err != nil {
 		return nil, fmt.Errorf("invalid host: %w", err)
 	}
 
@@ -39,35 +42,31 @@ func (a *Analyzer) Run(host string, publish bool) (*models.Host, error) {
 	fmt.Printf("Current assessments: %d\n\n", info.CurrentAssessments)
 
 	// 3. Iniciar análisis
-	fmt.Printf("Starting analysis for %s...\n", host)
-	result, err := a.client.StartAnalysis(host, publish)
+	fmt.Printf("Starting analysis for %s...\n", sanitizedHost)
+	result, err := a.client.StartAnalysis(sanitizedHost, publish)
 	if err != nil {
 		return nil, fmt.Errorf("error starting analysis: %w", err)
 	}
 
 	// 4. Si ya está listo, retornar
-	if result.Status == "READY" || result.Status == "ERROR" {
+	if client.IsAnalysisComplete(result.Status) {
+		if result.Status == "ERROR" {
+			return nil, fmt.Errorf("analysis failed: %s", result.StatusMessage)
+		}
 		return result, nil
 	}
 
 	// 5. Hacer polling hasta que termine
 	fmt.Println("Analysis in progress...")
-	return a.pollAnalysis(host)
+	return a.pollAnalysis(sanitizedHost)
 }
 
 // pollAnalysis hace polling periódico hasta que el análisis termine
 func (a *Analyzer) pollAnalysis(host string) (*models.Host, error) {
-	var pollInterval time.Duration
+	pollInterval := 5 * time.Second
 	inProgress := false
 
 	for {
-		// Polling variable: 5s hasta IN_PROGRESS, luego 10s
-		if inProgress {
-			pollInterval = 10 * time.Second
-		} else {
-			pollInterval = 5 * time.Second
-		}
-
 		time.Sleep(pollInterval)
 
 		result, err := a.client.CheckAnalysis(host)
@@ -75,33 +74,40 @@ func (a *Analyzer) pollAnalysis(host string) (*models.Host, error) {
 			return nil, fmt.Errorf("error checking analysis: %w", err)
 		}
 
-		fmt.Printf("Status: %s", result.Status)
+		// Mostrar progreso
+		a.printProgress(result)
 
-		// Mostrar progreso de endpoints
-		if len(result.Endpoints) > 0 {
-			fmt.Print(" | Endpoints: ")
-			for i, ep := range result.Endpoints {
-				if i > 0 {
-					fmt.Print(", ")
-				}
-				fmt.Printf("%s (%d%%)", ep.IPAddress, ep.Progress)
+		// Verificar si terminó
+		if client.IsAnalysisComplete(result.Status) {
+			fmt.Print("\r" + strings.Repeat(" ", 100) + "\r") // Limpiar línea
+
+			if result.Status == "ERROR" {
+				return nil, fmt.Errorf("analysis failed: %s", result.StatusMessage)
 			}
-		}
-		fmt.Println()
 
-		switch result.Status {
-		case "READY":
-			fmt.Println("\nAnalysis complete!")
+			fmt.Println("\n Analysis complete!")
 			return result, nil
+		}
 
-		case "ERROR":
-			return nil, fmt.Errorf("analysis failed: %s", result.StatusMessage)
-
-		case "IN_PROGRESS":
+		// Ajustar intervalo cuando entra en progreso
+		if result.Status == "IN_PROGRESS" && !inProgress {
 			inProgress = true
+			pollInterval = 10 * time.Second
+		}
+	}
+}
 
-		case "DNS":
-			fmt.Println("Resolving DNS...")
+// printProgress muestra el progreso actual
+func (a *Analyzer) printProgress(result *models.Host) {
+	fmt.Printf("\rStatus: %-15s", result.Status)
+
+	if len(result.Endpoints) > 0 {
+		fmt.Print(" | Endpoints: ")
+		for i, ep := range result.Endpoints {
+			if i > 0 {
+				fmt.Print(", ")
+			}
+			fmt.Printf("%s (%d%%)", ep.IPAddress, ep.Progress)
 		}
 	}
 }

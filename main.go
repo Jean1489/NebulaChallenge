@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
-	
+	"os/signal"
+	"syscall"
+
 	"NebulaChallenge/analyzer"
 	"NebulaChallenge/formatter"
 )
@@ -18,18 +21,31 @@ func main() {
 
 	flag.Parse()
 
-	// Mostrar ayuda si se solicita
 	if *helpPtr {
 		printHelp()
 		os.Exit(0)
 	}
 
-	// Validar que se proporcionó el host
 	if *hostPtr == "" {
 		fmt.Println("Error: --host flag is required")
 		fmt.Println("Use --help for more information")
 		os.Exit(1)
 	}
+
+	// Setup context para manejar Ctrl+C
+	_, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Capturar Ctrl+C
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		fmt.Println("\n\nAnalysis cancelled by user")
+		cancel()
+		os.Exit(0)
+	}()
 
 	// Crear analizador y ejecutar
 	a := analyzer.NewAnalyzer()
@@ -56,7 +72,7 @@ func main() {
 func printHelp() {
 	fmt.Println("Nebula Challenge - SSL Labs Security Scanner")
 	fmt.Println("\nUsage:")
-	fmt.Println("  go run . --host=<hostname> [options]")
+	fmt.Println("  nebula-challenge --host=<hostname> [options]")
 	fmt.Println("\nOptions:")
 	fmt.Println("  --host string      Hostname to analyze (required)")
 	fmt.Println("  --publish          Publish results on SSL Labs public boards")

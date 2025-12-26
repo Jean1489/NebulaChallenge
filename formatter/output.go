@@ -56,11 +56,11 @@ func printEndpoint(num int, ep *models.Endpoint) {
 	fmt.Printf("    Status: %s\n", ep.StatusMessage)
 
 	if ep.HasWarnings {
-		fmt.Printf("    ⚠️  Has Warnings\n")
+		fmt.Printf("Has Warnings\n")
 	}
 
 	if ep.IsExceptional {
-		fmt.Printf("    ⭐ Exceptional Configuration\n")
+		fmt.Printf("Exceptional Configuration\n")
 	}
 
 	// Detalles si están disponibles
@@ -118,42 +118,42 @@ func printVulnerabilities(details *models.EndpointDetails) {
 	hasVulnerabilities := false
 
 	if details.VulnBeast {
-		fmt.Printf("      ❌ BEAST: Vulnerable\n")
+		fmt.Printf("    BEAST: Vulnerable\n")
 		hasVulnerabilities = true
 	}
 
 	if details.Heartbleed {
-		fmt.Printf("      ❌ Heartbleed: Vulnerable\n")
+		fmt.Printf("    Heartbleed: Vulnerable\n")
 		hasVulnerabilities = true
 	}
 
 	if details.Poodle {
-		fmt.Printf("      ❌ POODLE (SSL): Vulnerable\n")
+		fmt.Printf("     POODLE (SSL): Vulnerable\n")
 		hasVulnerabilities = true
 	}
 
 	if details.PoodleTls == 2 {
-		fmt.Printf("      ❌ POODLE (TLS): Vulnerable\n")
+		fmt.Printf("     POODLE (TLS): Vulnerable\n")
 		hasVulnerabilities = true
 	}
 
 	if details.Freak {
-		fmt.Printf("      ❌ FREAK: Vulnerable\n")
+		fmt.Printf("      FREAK: Vulnerable\n")
 		hasVulnerabilities = true
 	}
 
 	if details.Logjam {
-		fmt.Printf("      ❌ Logjam: Vulnerable\n")
+		fmt.Printf("      Logjam: Vulnerable\n")
 		hasVulnerabilities = true
 	}
 
 	if details.Rc4Only {
-		fmt.Printf("      ⚠️  RC4 Only\n")
+		fmt.Printf("      RC4 Only\n")
 		hasVulnerabilities = true
 	}
 
 	if !hasVulnerabilities {
-		fmt.Printf("      ✅ No major vulnerabilities detected\n")
+		fmt.Printf("      No major vulnerabilities detected\n")
 	}
 
 	// Forward Secrecy
